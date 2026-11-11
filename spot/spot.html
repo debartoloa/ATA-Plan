@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATA Planner • Video Spot Experience</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: #020617;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    /* Warp tunnel effect */
+    .warp-grid {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(99, 102, 241, 0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(99, 102, 241, 0.15) 1px, transparent 1px);
+      perspective: 600px;
+      transform-style: preserve-3d;
+    }
+
+    /* Glow pulse */
+    @keyframes glowPulse {
+      0%, 100% { filter: drop-shadow(0 0 25px rgba(99, 102, 241, 0.45)); }
+      50% { filter: drop-shadow(0 0 55px rgba(56, 189, 248, 0.75)); }
+    }
+    .glow-phone {
+      animation: glowPulse 3.5s infinite ease-in-out;
+    }
+
+    /* Teleport flash */
+    @keyframes teleportFlash {
+      0% { opacity: 0; transform: scale(0.85); filter: blur(20px) brightness(2.5); }
+      40% { opacity: 1; transform: scale(1.04); filter: blur(0px) brightness(1.2); }
+      100% { opacity: 1; transform: scale(1); filter: blur(0px) brightness(1); }
+    }
+    .teleport-in {
+      animation: teleportFlash 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Speed lines */
+    .speed-line {
+      position: absolute;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.8), transparent);
+      height: 2px;
+      border-radius: 9999px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-3 sm:p-6 relative selection:bg-indigo-500 selection:text-white">
+
+  <!-- Background Animated Lights -->
+  <div class="fixed inset-0 pointer-events-none -z-10">
+    <div id="orb-1" class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-indigo-600/20 blur-[130px] transition-all duration-700"></div>
+    <div id="orb-2" class="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-sky-500/20 blur-[140px] transition-all duration-700"></div>
+    <div id="orb-3" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[160px] opacity-0 transition-all duration-700"></div>
+  </div>
+
+  <!-- Header / Navigation Bar -->
+  <header class="w-full max-w-5xl flex items-center justify-between mb-4 px-2">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-400 p-0.5 shadow-lg shadow-indigo-500/30">
+        <div class="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
+          <span class="text-lg font-black bg-gradient-to-r from-indigo-400 to-sky-300 bg-clip-text text-transparent">ATA</span>
+        </div>
+      </div>
+      <div>
+        <h1 class="text-sm font-black tracking-tight text-white flex items-center gap-2">
+          ATA PLANNER
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 mono">WARP SPOT v1.0</span>
+        </h1>
+        <p class="text-[11px] text-slate-400">Video spot interattivo con teletrasporto dinamico</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-2">
+      <button id="fullscreen-btn" class="text-xs px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition">
+        Schermo Intero
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Showcase Container -->
+  <div class="relative w-full max-w-5xl bg-slate-900/60 border border-slate-800/80 rounded-3xl p-4 sm:p-8 backdrop-blur-2xl shadow-2xl flex flex-col items-center overflow-hidden">
+    
+    <!-- Speed Lines Overlay for Warp -->
+    <div id="warp-overlay" class="absolute inset-0 pointer-events-none opacity-0 transition-opacity duration-200 z-30">
+      <div class="absolute inset-0 bg-indigo-950/40 backdrop-blur-sm"></div>
+      <div class="speed-line w-64 top-1/4 left-10" style="opacity: 1; animation: ping 0.4s infinite;"></div>
+      <div class="speed-line w-96 top-2/3 right-10" style="opacity: 1; animation: ping 0.3s infinite reverse;"></div>
+      <div class="speed-line w-48 top-1/2 left-1/3" style="opacity: 1; animation: ping 0.25s infinite;"></div>
+    </div>
+
+    <!-- Teleport Flash Overlay -->
+    <div id="flash-overlay" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-40 transition-opacity duration-150"></div>
+
+    <!-- Phone Simulator (9:16 Aspect Mockup) -->
+    <div class="relative w-[340px] sm:w-[380px] h-[670px] sm:h-[720px] rounded-[48px] bg-slate-950 border-[6px] border-slate-800 shadow-2xl glow-phone overflow-hidden flex flex-col">
+      
+      <!-- Phone Notch / Dynamic Island -->
+      <div class="absolute top-3 left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-full z-30 flex items-center justify-between px-3">
+        <div class="w-2.5 h-2.5 rounded-full bg-slate-950"></div>
+        <div class="w-1.5 h-1.5 rounded-full bg-indigo-500/80"></div>
+      </div>
+
+      <!-- Phone Screen Content (Teleport Scenes) -->
+      <div id="phone-screen" class="w-full h-full relative overflow-hidden flex flex-col bg-slate-950">
+        
+        <!-- SCENE CONTAINER (Dynamically injected) -->
+        <div id="scene-host" class="w-full h-full relative z-10 flex flex-col p-6">
+          <!-- Injected via JavaScript -->
+        </div>
+
+      </div>
+
+      <!-- Video Progress Line in Phone -->
+      <div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-white/30 rounded-full z-30"></div>
+    </div>
+
+    <!-- Control Bar Below Phone -->
+    <div class="w-full max-w-xl mt-6 flex flex-col gap-3 z-10">
+      <!-- Progress Bar -->
+      <div class="w-full bg-slate-800/80 h-2 rounded-full overflow-hidden p-0.5 border border-slate-700/50">
+        <div id="timeline-progress" class="bg-gradient-to-r from-indigo-500 via-sky-400 to-emerald-400 h-full rounded-full w-0 transition-all duration-300"></div>
+      </div>
+
+      <!-- Transport Controls -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <button id="play-btn" class="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-sky-500 hover:from-indigo-500 hover:to-sky-400 text-white font-extrabold text-sm shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition active:scale-95">
+            <svg id="play-icon" class="w-4 h-4 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="play-text">AVVIA WARP SPOT</span>
+          </button>
+          
+          <button id="sound-btn" class="p-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/80 transition" title="Effetti Sonori Sintetizzati">
+            <svg id="sound-icon" class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          </button>
+        </div>
+
+        <!-- Scene Pill Indicators -->
+        <div class="flex items-center gap-1.5 mono text-[11px]">
+          <button data-warp="0" class="scene-dot px-2.5 py-1 rounded-xl bg-indigo-600 text-white font-bold transition">1. CAOS</button>
+          <button data-warp="1" class="scene-dot px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition">2. WARP</button>
+          <button data-warp="2" class="scene-dot px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition">3. FLASH</button>
+          <button data-warp="3" class="scene-dot px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition">4. CONTATORI</button>
+          <button data-warp="4" class="scene-dot px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition">5. FINALE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Synthesis (Web Audio API: Whoosh, Warp, Bass Drop) -->
+  <script>
+    class SFXController {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+      playWhoosh() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        const filter = this.ctx.createBiquadFilter();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.18);
+        osc.frequency.exponentialRampToValueAtTime(80, now + 0.45);
+
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.frequency.linearRampToValueAtTime(3200, now + 0.2);
+        filter.frequency.linearRampToValueAtTime(300, now + 0.45);
+
+        gain.gain.setValueAtTime(0.01, now);
+        gain.gain.linearRampToValueAtTime(0.35, now + 0.15);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+        osc.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.45);
+      }
+      playTeleportDrop() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        
+        // Sub bass hit
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(42, now + 0.6);
+
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.7);
+
+        // High shimmer
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.setValueAtTime(880, now);
+        osc2.frequency.exponentialRampToValueAtTime(1760, now + 0.25);
+        gain2.gain.setValueAtTime(0.18, now);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc2.connect(gain2);
+        gain2.connect(this.ctx.destination);
+        osc2.start(now);
+        osc2.stop(now + 0.35);
+      }
+      playChime() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.5);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.5);
+        });
+      }
+    }
+
+    const sfx = new SFXController();
+  </script>
+
+  <!-- Spot Storyboard & Engine -->
+  <script>
+    const SCENES = [
+      {
+        id: 'chaos',
+        duration: 3200,
+        title: 'SCENA 1: IL CAOS QUOTIDIANO',
+        render: () => `
+          <div class="h-full flex flex-col justify-between pt-8 pb-4 text-center teleport-in">
+            <div class="space-y-2">
+              <span class="inline-block px-3 py-1 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-bold mono uppercase">
+                Ancora con i foglietti?
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-black text-white leading-tight">
+                "Quante ore ho fatto?<br>
+                <span class="text-rose-400 underline decoration-rose-500/50">E le ferie rimaste?</span>"
+              </h2>
+            </div>
+
+            <!-- Chaotic sticky notes mockup -->
+            <div class="relative w-full h-64 flex items-center justify-center">
+              <div class="absolute w-44 p-3 bg-amber-300 text-slate-900 rounded-xl shadow-xl -rotate-12 border border-amber-400 font-bold text-xs text-left">
+                📝 14/10: +3h Segreteria (forse?)
+              </div>
+              <div class="absolute w-48 p-3 bg-rose-300 text-slate-900 rounded-xl shadow-xl rotate-6 border border-rose-400 font-bold text-xs text-left translate-y-8">
+                ⚠️ 18h permessi: quante ne ho usate?!
+              </div>
+              <div class="absolute w-40 p-3 bg-emerald-200 text-slate-900 rounded-xl shadow-xl -rotate-3 border border-emerald-300 font-bold text-xs text-left -translate-y-12 translate-x-4">
+                🏖️ Ferie 30 o 32 gg?
+              </div>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs text-slate-400 flex items-center justify-center gap-2">
+              <span>Basta calcoli a mano a fine mese.</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 'warp_tunnel',
+        duration: 2200,
+        title: 'SCENA 2: TELETRASPORTO (WARP SPEED)',
+        render: () => `
+          <div class="h-full flex flex-col items-center justify-center text-center teleport-in relative">
+            <div class="absolute inset-0 warp-grid opacity-80 animate-pulse"></div>
+            
+            <div class="relative z-10 space-y-4">
+              <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-500 via-sky-400 to-emerald-400 p-1 shadow-2xl shadow-cyan-400/50 flex items-center justify-center animate-spin" style="animation-duration: 4s;">
+                <div class="w-full h-full bg-slate-950 rounded-[20px] flex items-center justify-center">
+                  <span class="text-2xl font-black text-white">⚡</span>
+                </div>
+              </div>
+
+              <h2 class="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-indigo-200 to-white uppercase">
+                TELETRASPORTO<br>NEL FUTURO
+              </h2>
+
+              <p class="text-xs font-semibold text-indigo-300 mono tracking-widest uppercase">
+                INIT PROTOCOL // ATA PLANNER
+              </p>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 'teleport_arrival',
+        duration: 3600,
+        title: 'SCENA 3: ARRIVO NELLA DASHBOARD SMERIGLIATA',
+        render: () => `
+          <div class="h-full flex flex-col justify-between pt-6 pb-2 teleport-in text-left">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">ATA</div>
+                  <div>
+                    <h3 class="text-xs font-black text-white">ATA PLANNER</h3>
+                    <p class="text-[10px] text-indigo-300">A.S. 2026/2027 • 6gg (6h/g)</p>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold mono">OFFLINE-READY</span>
+              </div>
+
+              <h2 class="text-xl font-black text-white leading-tight mb-2">
+                Tutto il tuo orario.<br>
+                <span class="text-sky-400">In un solo colpo d'occhio.</span>
+              </h2>
+            </div>
+
+            <!-- Mini Live Schedule Grid -->
+            <div class="bg-white/10 border border-white/20 rounded-2xl p-3 backdrop-blur-xl shadow-xl space-y-2">
+              <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 pb-1 border-b border-white/10">
+                <span>Lunedì 19 Ottobre</span>
+                <span class="text-emerald-400">Turno 08:00 - 14:00</span>
+              </div>
+              <div class="p-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 text-white text-[11px] font-bold flex items-center justify-between shadow-md">
+                <span>+ Straordinario (Palestra)</span>
+                <span>+0h 30m</span>
+              </div>
+              <div class="p-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 text-white text-[11px] font-bold flex items-center justify-between shadow-md">
+                <span>Permesso Personale (Laurea)</span>
+                <span>-6h 00m</span>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/30 text-[11px] text-indigo-200 flex items-center justify-between">
+              <span>📅 Griglia Settimanale</span>
+              <span class="font-bold text-white">Touch-ready</span>
+            </div>
+          </div>
+        `
+      },
+      {
+        id: 'counters_explode',
+        duration: 3800,
+        title: 'SCENA 4: I 5 CONTATORI IN TEMPO REALE',
+        render: () => `
+          <div class="h-full flex flex-col justify-between pt-6 pb-2 teleport-in text-left">
+            <div>
+              <span class="text-[10px] font-bold mono text-sky-400 tracking-wider uppercase">Live Sync Metrics</span>
+              <h2 class="text-xl font-black text-white leading-tight mt-1">
+                Contatori aggiornati<br>al secondo.
+              </h2>
+            </div>
+
+            <!-- 5 Badges Showcase -->
+            <div class="grid grid-cols-2 gap-2 my-auto">
+              <div class="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 backdrop-blur-md">
+                <span class="text-[10px] font-bold text-emerald-400 uppercase">1. Ferie</span>
+                <p class="text-lg font-black text-white">29 <span class="text-xs text-slate-400">/ 32 gg</span></p>
+                <p class="text-[10px] text-slate-400">174h rimanenti</p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-teal-500/15 border border-teal-400/30 backdrop-blur-md">
+                <span class="text-[10px] font-bold text-teal-400 uppercase">2. Fest. Soppr.</span>
+                <p class="text-lg font-black text-white">4 <span class="text-xs text-slate-400">/ 4 gg</span></p>
+                <p class="text-[10px] text-slate-400">Giornata intera</p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-violet-500/15 border border-violet-400/30 backdrop-blur-md">
+                <span class="text-[10px] font-bold text-violet-400 uppercase">3. Permessi</span>
+                <p class="text-lg font-black text-white">12h <span class="text-xs text-slate-400">/ 18h</span></p>
+                <p class="text-[10px] text-slate-400">Art. 31 CCNL</p>
+              </div>
+
+              <div class="p-3 rounded-2xl bg-rose-500/15 border border-rose-400/30 backdrop-blur-md">
+                <span class="text-[10px] font-bold text-rose-400 uppercase">4. Visita Spec.</span>
+                <p class="text-lg font-black text-white">18h <span class="text-xs text-slate-400">/ 18h</span></p>
+                <p class="text-[10px] text-slate-400">Visite & Terapie</p>
+              </div>
+
+              <div class="col-span-2 p-3 rounded-2xl bg-sky-500/15 border border-sky-400/30 backdrop-blur-md flex items-center justify-between">
+                <div>
+                  <span class="text-[10px] font-bold text-sky-400 uppercase">5. Monte Ore Saldo</span>
+                  <p class="text-xl font-black text-sky-300">+22h 00m</p>
+                </div>
+                <div class="text-right text-[10px] text-slate-400">
+                  <span class="px-2 py-0.5 rounded bg-sky-500/30 text-sky-200 font-bold">+22h 30m</span><br>
+                  <span class="px-2 py-0.5 rounded bg-orange-500/30 text-orange-200 font-bold">-0h 30m</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-center text-slate-400">
+              Mai più sorprese sul cedolino o con la segreteria.
+            </p>
+          </div>
+        `
+      },
+      {
+        id: 'cta_final',
+        duration: 4200,
+        title: 'SCENA 5: CALL TO ACTION FINALE',
+        render: () => `
+          <div class="h-full flex flex-col justify-between pt-8 pb-4 text-center teleport-in">
+            <div class="space-y-3">
+              <div class="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-tr from-indigo-500 via-sky-400 to-emerald-400 p-0.5 shadow-2xl shadow-indigo-500/40 flex items-center justify-center">
+                <div class="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center">
+                  <span class="text-2xl">🎓</span>
+                </div>
+              </div>
+
+              <h2 class="text-2xl sm:text-3xl font-black text-white leading-tight">
+                Installa Subito<br>
+                <span class="bg-gradient-to-r from-sky-400 to-indigo-300 bg-clip-text text-transparent">ATA PLANNER</span>
+              </h2>
+
+              <p class="text-xs text-slate-300 max-w-xs mx-auto">
+                Web App PWA Gratuita, Offline, senza registrazione. Salvataggio locale e backup istantaneo.
+              </p>
+            </div>
+
+            <div class="space-y-2">
+              <div class="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-sky-500 text-white font-black text-sm shadow-xl shadow-indigo-600/40">
+                PROVALA ORA SUL TUO SMARTPHONE
+              </div>
+              <p class="text-[10px] text-slate-500 mono">Compatibile con Android, iOS & PC Desktop</p>
+            </div>
+          </div>
+        `
+      }
+    ];
+
+    let currentSceneIdx = 0;
+    let isPlaying = false;
+    let sceneTimer = null;
+    let totalDuration = SCENES.reduce((acc, s) => acc + s.duration, 0);
+
+    const sceneHost = document.getElementById('scene-host');
+    const playBtn = document.getElementById('play-btn');
+    const playText = document.getElementById('play-text');
+    const playIcon = document.getElementById('play-icon');
+    const timelineProgress = document.getElementById('timeline-progress');
+    const flashOverlay = document.getElementById('flash-overlay');
+    const warpOverlay = document.getElementById('warp-overlay');
+    const dots = document.querySelectorAll('.scene-dot');
+    const soundBtn = document.getElementById('sound-btn');
+
+    // Trigger visual teleport transition
+    function triggerTeleportFX(targetIdx) {
+      sfx.playWhoosh();
+      warpOverlay.style.opacity = '1';
+      flashOverlay.style.opacity = '0.9';
+
+      setTimeout(() => {
+        flashOverlay.style.opacity = '0';
+        warpOverlay.style.opacity = '0';
+        if (targetIdx === 1 || targetIdx === 2) {
+          sfx.playTeleportDrop();
+        } else if (targetIdx === 3 || targetIdx === 4) {
+          sfx.playChime();
+        }
+      }, 160);
+    }
+
+    function renderScene(idx) {
+      currentSceneIdx = idx;
+      const scene = SCENES[idx];
+      
+      // Update Scene Pill active states
+      dots.forEach((dot, dIdx) => {
+        if (dIdx === idx) {
+          dot.className = 'scene-dot px-2.5 py-1 rounded-xl bg-indigo-600 text-white font-bold transition';
+        } else {
+          dot.className = 'scene-dot px-2.5 py-1 rounded-xl bg-slate-800 text-slate-400 hover:text-slate-200 transition';
+        }
+      });
+
+      // Render content
+      sceneHost.innerHTML = scene.render();
+
+      // Background ambient colors
+      const orb3 = document.getElementById('orb-3');
+      if (idx === 2 || idx === 3) {
+        orb3.style.opacity = '0.7';
+      } else {
+        orb3.style.opacity = '0';
+      }
+
+      // Update progress bar
+      let elapsed = 0;
+      for (let i = 0; i < idx; i++) elapsed += SCENES[i].duration;
+      const pct = (elapsed / totalDuration) * 100;
+      timelineProgress.style.width = `${pct}%`;
+    }
+
+    function nextScene() {
+      if (currentSceneIdx < SCENES.length - 1) {
+        triggerTeleportFX(currentSceneIdx + 1);
+        renderScene(currentSceneIdx + 1);
+        scheduleNext();
+      } else {
+        // End of spot
+        stopPlayback();
+        timelineProgress.style.width = '100%';
+      }
+    }
+
+    function scheduleNext() {
+      clearTimeout(sceneTimer);
+      const currentDuration = SCENES[currentSceneIdx].duration;
+      sceneTimer = setTimeout(() => {
+        if (isPlaying) {
+          nextScene();
+        }
+      }, currentDuration);
+    }
+
+    function startPlayback() {
+      sfx.init();
+      isPlaying = true;
+      playText.innerText = 'PAUSA WARP';
+      playIcon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+      
+      if (currentSceneIdx >= SCENES.length - 1) {
+        currentSceneIdx = 0;
+      }
+      triggerTeleportFX(currentSceneIdx);
+      renderScene(currentSceneIdx);
+      scheduleNext();
+    }
+
+    function stopPlayback() {
+      isPlaying = false;
+      clearTimeout(sceneTimer);
+      playText.innerText = 'AVVIA WARP SPOT';
+      playIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+    }
+
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        stopPlayback();
+      } else {
+        startPlayback();
+      }
+    });
+
+    // Scene Dot Manual Jump
+    dots.forEach((dot) => {
+      dot.addEventListener('click', (e) => {
+        sfx.init();
+        const targetIdx = parseInt(e.target.getAttribute('data-warp'), 10);
+        triggerTeleportFX(targetIdx);
+        renderScene(targetIdx);
+        if (isPlaying) {
+          scheduleNext();
+        }
+      });
+    });
+
+    // Sound Toggle
+    soundBtn.addEventListener('click', () => {
+      sfx.enabled = !sfx.enabled;
+      soundBtn.style.opacity = sfx.enabled ? '1' : '0.4';
+    });
+
+    // Fullscreen Toggle
+    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    });
+
+    // Initial render
+    renderScene(0);
+  </script>
+</body>
+</html>
